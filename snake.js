@@ -4,7 +4,7 @@ document.write("<canvas id='canvas' style='border: solid 4px #181; padding:1px; 
 
 let miniBlockSize = 4;
 let arenaSize = [30, 20];
-let defaultSnake = [[6, 2, 0], [5, 2, 0], [4, 2, 0], [3, 2, 0], [2, 2, 0]];
+let defaultSnake = [[6, 2, false], [5, 2, false], [4, 2, false], [3, 2, false], [2, 2, false]];
 let snake = [...defaultSnake];
 let food_location = [5, 5];
 let snakeDelay = 100;
@@ -15,8 +15,10 @@ snakeArenaCanvas.setAttribute('height', arenaSize[1] * miniBlockSize * 4);
 const ctx = snakeArenaCanvas.getContext('2d');
 ctx.fillStyle = 'black';
 
-function printBlock(intBlockData, x, y) //blockData is 2byte hex (0xFFFF)
+function printBlock(intBlockData, coordinates) //blockData is 2byte hex (0xFFFF)
 {
+	let x = coordinates[0];
+	let y = coordinates[1];
 	//"miniBlockSize" per mini block, "4* miniBlockSize"  will be whole block
 	for (let i = 0; i < 4; i++) {
 		let current = intBlockData % 16;
@@ -36,6 +38,7 @@ function eraseBlock(x, y) {
 	ctx.fillStyle = 'black';
 }
 
+// keyboard handler
 var currentKey = "KeyD";
 var snakeDirection = "KeyD";
 function keyboardHandler(e) {
@@ -43,119 +46,101 @@ function keyboardHandler(e) {
 }
 document.addEventListener('keypress', keyboardHandler);
 
-function renderSnake(snakeArray) {
+///NEW
+direction = {
+	UP: -1,
+	RIGHT: 2,
+	DOWN: 1,
+	LEFT: -2,
+	SAMEBLOCK: 0,
+	FARAWAY: 10
+};
+
+function getDirection(main, secondary) {
+	let x = main[0] - secondary[0];
+	let y = main[1] - secondary[1];
+	
+	if (x == 0 && y == 0) return direction.SAMEBLOCK;
+	else if (x == 1 && y == 0) return direction.RIGHT;
+	else if (x == 0 && y == 1) return direction.DOWN;
+	else if (x == -1 && y == 0) return direction.LEFT;
+	else if (x == 0 && y == -1) return direction.UP;
+	else return direction.FARAWAY;
+}
+
+let foodBlock = 0x0660;
+
+//false - no food in front, true - has food in front
+let snakeHeadBlock = {
+	[direction.RIGHT]: {true: 0x5AE1, false: 0x4BF0},
+	[direction.DOWN]: {true: 0x6A69, false: 0x6A66},
+	[direction.LEFT]: {true: 0xA578, false: 0x2DF0},
+	[direction.UP]: {true: 0x96A6, false: 0x66A6}
+};
+
+//false - no food in body piece (thin), true - has food in body piece (fat)
+let snakeBodyBlock = {
+	[direction.RIGHT]: {
+		[direction.DOWN]: { true: 0x0357, false: 0x0356}, //cloned to down-right
+		[direction.LEFT]: { true: 0x6DB6, false: 0x0DB0 },
+		[direction.UP]: { true: 0x7530, false: 0x6530 } //cloned to up-right
+	},
+	[direction.DOWN]: {
+		[direction.RIGHT]: { true: 0x0357, false: 0x0356 }, //clone
+		[direction.LEFT]: { true: 0x0CAE, false: 0x0CA6 }, //clone
+		[direction.UP]: { true: 0x6DB6, false: 0x6426 }
+	},
+	[direction.LEFT]: {
+		[direction.RIGHT]: { true: 0x6BD6, false: 0x0BD0 },
+		[direction.DOWN]: { true: 0x0CAE, false: 0x0CA6 }, //cloned to down-left
+		[direction.UP]: { true: 0xEAC0, false: 0x6AC0 } //cloned to up-left
+	},
+	[direction.UP]: {
+		[direction.RIGHT]: { true: 0x7530, false: 0x6530 }, //clone
+		[direction.DOWN]: { true: 0x6BD6, false: 0x6246 },
+		[direction.LEFT]: { true: 0xEAC0, false: 0x6AC0 } //clone
+	}
+}
+
+let snakeTailBlock = {
+	[direction.RIGHT]: 0x0170,
+	[direction.DOWN]: 0x0226,
+	[direction.LEFT]: 0x08E0,
+	[direction.UP]: 0x6220
+};
+
+///NEW
+
+function renderSnakeAndFood(snakeArray) {
 	let snakeLength = snake.length - 1;
-	let UP = -1; let RIGHT = 2; let DOWN = 1; let LEFT = -2;
 	//HEAD OF SNAKE RENDER
-	let headDirection = (snake[0][0] - snake[1][0]) * 2 + (snake[0][1] - snake[1][1]); //snake headDirection x*2 + y //UNFINISHED&&&
-	if (headDirection == RIGHT) {
-		if (food_location[0] == (snake[0][0] + 1) && food_location[1] == snake[0][1]) {
-			printBlock(0x5AE1, snake[0][0], snake[0][1]) //snake head - right open mouth
-		} else {
-			printBlock(0x4BF0, snake[0][0], snake[0][1]) //snake head - right
-		}
-	} else if (headDirection == DOWN) {
-		if (food_location[0] == snake[0][0] && food_location[1] == (snake[0][1] + 1)) {
-			printBlock(0x6A69, snake[0][0], snake[0][1]) //snake head - down open mouth
-		} else {
-			printBlock(0x6A66, snake[0][0], snake[0][1]) //snake head - down
-		}
-	} else if (headDirection == LEFT) {
-		if (food_location[0] == (snake[0][0] - 1) && food_location[1] == snake[0][1]) {
-			printBlock(0xA578, snake[0][0], snake[0][1]) //snake head - left open mouth
-		} else {
-			printBlock(0x2DF0, snake[0][0], snake[0][1]) //snake head - left
-		}
-	} else if (headDirection == UP) {
-		if (food_location[0] == snake[0][0] && food_location[1] == (snake[0][1] - 1)) {
-			printBlock(0x96A6, snake[0][0], snake[0][1]) //snake head - up open mouth
-		} else {
-			printBlock(0x66A6, snake[0][0], snake[0][1]) //snake head - up
-		}
-	}
+	//let headDirection = (snake[0][0] - snake[1][0]) * 2 + (snake[0][1] - snake[1][1]); //snake headDirection x*2 + y //UNFINISHED&&&
+	let headDirection = getDirection(snake[0], snake[1]);
+	let hasFoodInFront = headDirection == getDirection(food_location, snake[0]);
+	printBlock(snakeHeadBlock[headDirection][hasFoodInFront], snake[0]);
 
-	/////////printBlock(snakeHead[direction], snakeArray[0][0], snakeArray[0][1]);
-	//MIDDLE OF SNAKE RENDER
+
+	//BODY OF SNAKE RENDER
 	for (let i = 1; i < snakeLength; i++) {
-		block1pos = (snake[i - 1][0] - snake[i][0]) * 2 + (snake[i - 1][1] - snake[i][1]);
-		block2pos = (snake[i + 1][0] - snake[i][0]) * 2 + (snake[i + 1][1] - snake[i][1]);
+		let block1direction = getDirection(snake[i - 1], snake[i]);
+		let block2direction = getDirection(snake[i + 1], snake[i]);
 
-		//snake[i][2] == 1 - if piece has eaten food
-		if (block1pos == LEFT && block2pos == RIGHT) {
-			if (snake[i][2] == 1) {
-				printBlock(0x6BD6, snake[i][0], snake[i][1]) //food block piece ^ <
-			} else {
-				printBlock(0x0BD0, snake[i][0], snake[i][1]) //horizontal block piece <
-			}
-		} else if (block1pos == RIGHT && block2pos == LEFT) {
-			if (snake[i][2] == 1) {
-				printBlock(0x6DB6, snake[i][0], snake[i][1]) //food block piece v >
-			} else {
-				printBlock(0x0DB0, snake[i][0], snake[i][1]) //horizontal block piece >
-			}
-		} else if (block1pos == UP && block2pos == DOWN) {
-			if (snake[i][2] == 1) {
-				printBlock(0x6BD6, snake[i][0], snake[i][1]) //food block piece ^ <
-			} else {
-				printBlock(0x6246, snake[i][0], snake[i][1]) //vertical block piece ^
-			}
-		} else if (block1pos == DOWN && block2pos == UP) {
-			if (snake[i][2] == 1) {
-				printBlock(0x6DB6, snake[i][0], snake[i][1]) //food block piece v >
-			} else {
-				printBlock(0x6426, snake[i][0], snake[i][1]) //vertical block piece v
-			}
-		} else if ((block1pos == UP && block2pos == LEFT) || (block1pos == LEFT && block2pos == UP)) {
-			if (snake[i][2] == 1) {
-				printBlock(0xEAC0, snake[i][0], snake[i][1]) //up-left & left-up food eaten piece
-			} else {
-				printBlock(0x6AC0, snake[i][0], snake[i][1]) //up-left & left-up block piece
-			}
-		} else if ((block1pos == DOWN && block2pos == RIGHT) || (block1pos == RIGHT && block2pos == DOWN)) {
-			if (snake[i][2] == 1) {
-				printBlock(0x0357, snake[i][0], snake[i][1]) //down-right & right-down food eaten piece
-			} else {
-				printBlock(0x0356, snake[i][0], snake[i][1]) //down-right & right-down block piece
-			}
-			//printBlock(, snake[i][0], snake[i][1]) //down-right & right-down piec
-		} else if ((block1pos == DOWN && block2pos == LEFT) || (block1pos == LEFT && block2pos == DOWN)) {
-			if (snake[i][2] == 1) {
-				printBlock(0x0CAE, snake[i][0], snake[i][1]) //down-left & left-down food eaten piece
-			} else {
-				printBlock(0x0CA6, snake[i][0], snake[i][1]) //down-left & left-down block piece
-			}
-		} else if ((block1pos == UP && block2pos == RIGHT) || (block1pos == RIGHT && block2pos == UP)) {
-			if (snake[i][2] == 1) {
-				printBlock(0x7530, snake[i][0], snake[i][1]) //up-right & right-up food eaten piece
-			} else {
-				printBlock(0x6530, snake[i][0], snake[i][1]) //up-right & right-up block piece
-			}
-		} /*else if (x == && y == )
-		  {
-		  
-		  } */
+		//snake[i][2] - if piece has eaten food bool, render fat snake piece
+		let hasEatenFood = snake[i][2];
+		printBlock(snakeBodyBlock[block1direction][block2direction][hasEatenFood], snake[i]);
 	}
 
-	//let tailDirection = (snake[snakeLength][0]-snake[snakeLength-1][0])*2 + (snake[snakeLength][1]-snake[snakeLength-1][1]);
-	let tailDirection = (snake[snakeLength - 1][0] - snake[snakeLength][0]) * 2 + (snake[snakeLength - 1][1] - snake[snakeLength][1]);
-	if (tailDirection == RIGHT) {
-		printBlock(0x0170, snake[snakeLength][0], snake[snakeLength][1]); //snake tail - right
-	} else if (tailDirection == DOWN) {
-		printBlock(0x0226, snake[snakeLength][0], snake[snakeLength][1]); //snake tail - down
-	} else if (tailDirection == LEFT) {
-		printBlock(0x08E0, snake[snakeLength][0], snake[snakeLength][1]); //snake tail - left
-	} else if (tailDirection == UP) {
-		printBlock(0x6220, snake[snakeLength][0], snake[snakeLength][1]); //snake tail - up
-	}
-
+	//TAIL OF SNAKE RENDER
+	let tailDirection = getDirection(snake[snakeLength - 1], snake[snakeLength]);
+	printBlock(snakeTailBlock[tailDirection], snake[snakeLength]); //snake tail - right
 
 	//END OF SNAKE RENDER
 	//RENDER FOOD
-	printBlock(0x0660, food_location[0], food_location[1]);
+	printBlock(foodBlock, food_location);
 }
-renderSnake(snake);
+renderSnakeAndFood(snake);
 
-function handleSnake() {
+function gameloop() {
 	let key = currentKey;
 
 	if (key == "KeyD" && snakeDirection != "KeyA") {
@@ -172,16 +157,16 @@ function handleSnake() {
 	}
 
 	if (snakeDirection == "KeyD") {
-		snake.unshift([snake[0][0] + 1, snake[0][1], 0]);
+		snake.unshift([snake[0][0] + 1, snake[0][1], false]);
 	}
 	else if (snakeDirection == "KeyS") {
-		snake.unshift([snake[0][0], snake[0][1] + 1, 0]);
+		snake.unshift([snake[0][0], snake[0][1] + 1, false]);
 	}
 	else if (snakeDirection == "KeyW") {
-		snake.unshift([snake[0][0], snake[0][1] - 1, 0]);
+		snake.unshift([snake[0][0], snake[0][1] - 1, false]);
 	}
 	else if (snakeDirection == "KeyA") {
-		snake.unshift([snake[0][0] - 1, snake[0][1], 0]);
+		snake.unshift([snake[0][0] - 1, snake[0][1], false]);
 	}
 
 	if (snake[0][0] == food_location[0] && snake[0][1] == food_location[1]) //snake head is in food, means food is eaten
@@ -199,7 +184,7 @@ function handleSnake() {
 				}
 			}
 		} while (foodIsInSnake) //if random food location is in snake, get new location		
-		snake[0][2] = 1; //set the part of snake to to show it ate a food, required for rendering "fat" parts of snake
+		snake[0][2] = true; //set the part of snake to to show it ate a food, required for rendering "fat" parts of snake
 	}
 	else {
 		snake.pop(); //remove last element of snake if it didn't eat any food, or snake will grow indefinitely
@@ -216,6 +201,6 @@ function handleSnake() {
 
 
 	ctx.clearRect(0, 0, snakeArenaCanvas.width, snakeArenaCanvas.height); //erase entire canvas
-	renderSnake(snake); //render the snake and food
+	renderSnakeAndFood(snake); //render the snake and food
 }
-setInterval(() => { handleSnake(snake) }, snakeDelay); //to control snake, lower value, higher speed
+setInterval(() => { gameloop(snake) }, snakeDelay); //to control snake, lower value, higher speed
