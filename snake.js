@@ -114,11 +114,9 @@ let snakeTailBlock = {
 function renderSnakeAndFood(snakeArray) {
 	let snakeLength = snake.length - 1;
 	//HEAD OF SNAKE RENDER
-	//let headDirection = (snake[0][0] - snake[1][0]) * 2 + (snake[0][1] - snake[1][1]); //snake headDirection x*2 + y //UNFINISHED&&&
 	let headDirection = getDirection(snake[0], snake[1]);
-	let hasFoodInFront = headDirection == getDirection(food_location, snake[0]);
+	let hasFoodInFront = (headDirection == getDirection(food_location, snake[0]));
 	printBlock(snakeHeadBlock[headDirection][hasFoodInFront], snake[0]);
-
 
 	//BODY OF SNAKE RENDER
 	for (let i = 1; i < snakeLength; i++) {
@@ -134,12 +132,11 @@ function renderSnakeAndFood(snakeArray) {
 	let tailDirection = getDirection(snake[snakeLength - 1], snake[snakeLength]);
 	printBlock(snakeTailBlock[tailDirection], snake[snakeLength]); //snake tail - right
 
-	//END OF SNAKE RENDER
-	//RENDER FOOD
+	//FOOD RENDER
 	printBlock(foodBlock, food_location);
 }
-renderSnakeAndFood(snake);
-
+//renderSnakeAndFood(snake);
+gameloop();
 function gameloop() {
 	let key = currentKey;
 
