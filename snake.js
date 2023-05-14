@@ -38,16 +38,9 @@ function eraseBlock(x, y) {
 	ctx.fillStyle = 'black';
 }
 
-// keyboard handler
-var currentKey = "KeyD";
-var snakeDirection = "KeyD";
-function keyboardHandler(e) {
-	currentKey = e.code;
-}
-document.addEventListener('keypress', keyboardHandler);
 
 ///NEW
-direction = {
+let direction = {
 	UP: -1,
 	RIGHT: 2,
 	DOWN: 1,
@@ -55,6 +48,28 @@ direction = {
 	SAMEBLOCK: 0,
 	FARAWAY: 10
 };
+
+let reverseDirection = {
+	[direction.UP]: direction.DOWN,
+	[direction.RIGHT]: direction.LEFT,
+	[direction.DOWN]: direction.UP,
+	[direction.LEFT]: direction.RIGHT
+};
+
+// keyboard handler
+let keyDirection = direction.RIGHT;
+let snakeDirection = direction.RIGHT;
+let directionKeyMapping = {
+	KeyW: direction.UP,
+	KeyA: direction.LEFT,
+	KeyS: direction.DOWN,
+	KeyD: direction.RIGHT
+};
+function keyboardHandler(e) {
+	let mappedDirectionKey = directionKeyMapping[e.code];
+	if (mappedDirectionKey)	keyDirection = mappedDirectionKey;
+}
+document.addEventListener('keypress', keyboardHandler);
 
 // get direction with wrapping around snake in mind
 function getDirection(main, secondary) {
@@ -139,31 +154,22 @@ function renderSnakeAndFood(snakeArray) {
 //renderSnakeAndFood(snake);
 gameloop();
 function gameloop() {
-	let key = currentKey;
+	//let key = keyDirection;
 
-	if (key == "KeyD" && snakeDirection != "KeyA") {
-		snakeDirection = "KeyD";
-	}
-	else if (key == "KeyS" && snakeDirection != "KeyW") {
-		snakeDirection = "KeyS";
-	}
-	else if (key == "KeyW" && snakeDirection != "KeyS") {
-		snakeDirection = "KeyW";
-	}
-	else if (key == "KeyA" && snakeDirection != "KeyD") {
-		snakeDirection = "KeyA";
+	if (keyDirection != reverseDirection[snakeDirection]) {
+		snakeDirection = keyDirection;
 	}
 
-	if (snakeDirection == "KeyD") {
+	if (snakeDirection == direction.RIGHT) {
 		snake.unshift([snake[0][0] + 1, snake[0][1], false]);
 	}
-	else if (snakeDirection == "KeyS") {
+	else if (snakeDirection ==  direction.DOWN) {
 		snake.unshift([snake[0][0], snake[0][1] + 1, false]);
 	}
-	else if (snakeDirection == "KeyW") {
+	else if (snakeDirection == direction.UP) {
 		snake.unshift([snake[0][0], snake[0][1] - 1, false]);
 	}
-	else if (snakeDirection == "KeyA") {
+	else if (snakeDirection == direction.LEFT) {
 		snake.unshift([snake[0][0] - 1, snake[0][1], false]);
 	}
 
@@ -200,8 +206,8 @@ function gameloop() {
 		if (snake[i][0] == snake[0][0] && snake[i][1] == snake[0][1]) {
 			// game over logic
 			snake = [...defaultSnake];
-			currentKey = "KeyD";
-			snakeDirection = "KeyD";
+			keyDirection = direction.RIGHT;
+			snakeDirection = direction.RIGHT;
 		}
 	}
 
