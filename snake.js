@@ -56,15 +56,16 @@ direction = {
 	FARAWAY: 10
 };
 
+// get direction with wrapping around snake in mind
 function getDirection(main, secondary) {
 	let x = main[0] - secondary[0];
 	let y = main[1] - secondary[1];
 	
 	if (x == 0 && y == 0) return direction.SAMEBLOCK;
-	else if (x == 1 && y == 0) return direction.RIGHT;
-	else if (x == 0 && y == 1) return direction.DOWN;
-	else if (x == -1 && y == 0) return direction.LEFT;
-	else if (x == 0 && y == -1) return direction.UP;
+	else if ( (x == 1 || x ==  1 - arenaSize[0]) && y == 0) return direction.RIGHT;
+	else if (x == 0 && (y == 1 || y == 1 - arenaSize[1])) return direction.DOWN;
+	else if ((x == -1 || x == arenaSize[0] - 1) && y == 0) return direction.LEFT;
+	else if (x == 0 && (y == -1 || y == arenaSize[1] - 1)) return direction.UP;
 	else return direction.FARAWAY;
 }
 
@@ -166,8 +167,14 @@ function gameloop() {
 		snake.unshift([snake[0][0] - 1, snake[0][1], false]);
 	}
 
-	if (snake[0][0] == food_location[0] && snake[0][1] == food_location[1]) //snake head is in food, means food is eaten
-	{
+	// wrap around snake logic (mathematical way, torus-like dimension)
+	// rendering should be able to handle wrapped around snake
+	snake[0][0] = (snake[0][0] + arenaSize[0]) % arenaSize[0];
+	snake[0][1] = (snake[0][1] + arenaSize[1]) % arenaSize[1];
+
+
+	// check if food is eaten (is snake head in food)
+	if (getDirection(snake[0], food_location) == direction.SAMEBLOCK) {
 		//this do-while generates food that is not inside of snake body
 		let foodIsInSnake = false;
 		do {
@@ -187,15 +194,18 @@ function gameloop() {
 		snake.pop(); //remove last element of snake if it didn't eat any food, or snake will grow indefinitely
 	}
 
-	for (let i = 1; i < snake.length; i++) //DYING condition check
+	// snake dying condition check and game over logic (if eats itself)
+	for (let i = 1; i < snake.length; i++)
 	{
-		if ((snake[i][0] == snake[0][0] && snake[i][1] == snake[0][1]) || (snake[0][0] < 0 || snake[0][0] >= arenaSize[0] || snake[0][1] < 0 || snake[0][1] >= arenaSize[1])) {
+		if (snake[i][0] == snake[0][0] && snake[i][1] == snake[0][1]) {
+			// game over logic
 			snake = [...defaultSnake];
 			currentKey = "KeyD";
 			snakeDirection = "KeyD";
 		}
 	}
 
+	
 
 	ctx.clearRect(0, 0, snakeArenaCanvas.width, snakeArenaCanvas.height); //erase entire canvas
 	renderSnakeAndFood(snake); //render the snake and food
