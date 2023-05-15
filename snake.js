@@ -31,12 +31,10 @@ function printBlock(intBlockData, coordinates) //blockData is 2byte hex (0xFFFF)
 
 }
 
-function eraseBlock(x, y) {
-	ctx.fillStyle = 'white';
-	blockSize = miniBlockSize * 4;
-	ctx.fillRect(blockSize * x, blockSize * y, blockSize, blockSize);
-	ctx.fillStyle = 'black';
-}
+// function eraseBlock(x, y) {
+// 	blockSize = miniBlockSize * 4;
+// 	ctx.clearRect(blockSize * x, blockSize * y, blockSize, blockSize);
+// }
 
 
 ///NEW
@@ -72,9 +70,9 @@ function keyboardHandler(e) {
 document.addEventListener('keypress', keyboardHandler);
 
 // get direction with wrapping around snake in mind
-function getDirection(main, secondary) {
-	let x = main[0] - secondary[0];
-	let y = main[1] - secondary[1];
+function getDirection(mainPoint, secondPoint) {
+	let x = mainPoint[0] - secondPoint[0];
+	let y = mainPoint[1] - secondPoint[1];
 	
 	if (x == 0 && y == 0) return direction.SAMEBLOCK;
 	else if ( (x == 1 || x ==  1 - arenaSize[0]) && y == 0) return direction.RIGHT;
@@ -84,7 +82,7 @@ function getDirection(main, secondary) {
 	else return direction.FARAWAY;
 }
 
-let foodBlock = 0x0660;
+let foodBlock = 0x4A40;
 
 //false - no food in front, true - has food in front
 let snakeHeadBlock = {
