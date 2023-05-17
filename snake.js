@@ -6,8 +6,8 @@ let miniBlockSize = 4;
 let arenaSize = [30, 20];
 let defaultSnake = [[6, 2, false], [5, 2, false], [4, 2, false], [3, 2, false], [2, 2, false]];
 let snake = [...defaultSnake];
-let food_location = [5, 5];
-let snakeDelay = 100;
+let food_location = [7, 2];
+let snakeDelay = 200;
 
 const snakeArenaCanvas = document.getElementById('canvas');
 snakeArenaCanvas.setAttribute('width', arenaSize[0] * miniBlockSize * 4);
@@ -125,7 +125,34 @@ let snakeTailBlock = {
 
 ///NEW
 
-function renderSnakeAndFood(snakeArray) {
+//WALLS LOGIC #####################################
+let wallPiece = "#";
+let walls = [
+	"#".repeat(arenaSize[0]),
+	"## ## ## # ## #",
+	"     #  #  # #",
+	"        #  # #",
+	"  ####  ##  # #"
+];
+walls = [];
+let wallRender = {};
+for (let y = 0; y < walls.length; y++) {
+	for (let x = 0; x < walls[0].length; x++) {
+		if (walls[y][x] == wallPiece) {
+			let block = 0x0660;
+			if (walls[y]?.[x+1] == wallPiece) block |= 0x0110;
+			if (walls[y]?.[x-1] == wallPiece) block |= 0x0880;
+			if (walls[y+1]?.[x] == wallPiece) block |= 0x0006;
+			if (walls[y-1]?.[x] == wallPiece) block |= 0x6000;
+
+			wallRender[[x, y]] = block;
+		} 
+	}
+}
+
+//WALLS LOGIC #####################################
+
+function renderSnakeFoodWalls(snakeArray) {
 	let snakeLength = snake.length - 1;
 	//HEAD OF SNAKE RENDER
 	let headDirection = getDirection(snake[0], snake[1]);
@@ -148,8 +175,16 @@ function renderSnakeAndFood(snakeArray) {
 
 	//FOOD RENDER
 	printBlock(foodBlock, food_location);
+
+
+	for (let coordinates in wallRender) {
+		printBlock(wallRender[coordinates], coordinates.split(',')); // js string to number conversion used
+	}
+	//TEMP
+
+
 }
-//renderSnakeAndFood(snake);
+//renderSnakeFoodWalls(snake);
 gameloop();
 function gameloop() {
 	//let key = keyDirection;
@@ -177,21 +212,31 @@ function gameloop() {
 	snake[0][1] = (snake[0][1] + arenaSize[1]) % arenaSize[1];
 
 
-	// check if food is eaten (is snake head in food)
+	// check if food is eaten (is snake head in food)s
 	if (getDirection(snake[0], food_location) == direction.SAMEBLOCK) {
-		//this do-while generates food that is not inside of snake body
-		let foodIsInSnake = false;
+		//this do-while generates food that is not inside of snake body or wall
+		let foodIsInSnakeOrWall = false;
 		do {
-			foodIsInSnake = false;
+			foodIsInSnakeOrWall  = false;
 			food_location[0] = Math.floor(Math.random() * arenaSize[0]);
 			food_location[1] = Math.floor(Math.random() * arenaSize[1]);
 			for (let i = 0; i < snake.length; i++) {
-				if (snake[i][0] == food_location[0] && snake[i][1] == food_location[1]) {
-					foodIsInSnake = true;
+				if (getDirection(snake[i], food_location) == direction.SAMEBLOCK) {
+					foodIsInSnakeOrWall = true;
 					break;
 				}
 			}
-		} while (foodIsInSnake) //if random food location is in snake, get new location		
+			
+			//check if food generated in wall, if so new location would be selected
+			if (!foodIsInSnakeOrWall) {
+				for (let wallBlockCoordinates in wallRender) {
+					if (getDirection(wallBlockCoordinates.split(','), food_location) == direction.SAMEBLOCK) {
+						foodIsInSnakeOrWall = true;
+						break;
+					}
+				}
+			}
+		} while (foodIsInSnakeOrWall) //if random food location is in snake, get new location		
 		snake[0][2] = true; //set the part of snake to to show it ate a food, required for rendering "fat" parts of snake
 	}
 	else {
@@ -201,7 +246,7 @@ function gameloop() {
 	// snake dying condition check and game over logic (if eats itself)
 	for (let i = 1; i < snake.length; i++)
 	{
-		if (snake[i][0] == snake[0][0] && snake[i][1] == snake[0][1]) {
+		if (getDirection(snake[0], snake[i]) == direction.SAMEBLOCK) {
 			// game over logic
 			snake = [...defaultSnake];
 			keyDirection = direction.RIGHT;
@@ -209,9 +254,21 @@ function gameloop() {
 		}
 	}
 
+	// dying by hitting a wall condition check
+	for (let wallBlockCoordinates in wallRender)
+	{
+		if (getDirection(wallBlockCoordinates.split(','), snake[0]) == direction.SAMEBLOCK) { // js string to number conversion used
+			// game over logic
+			snake = [...defaultSnake];
+			keyDirection = direction.RIGHT;
+			snakeDirection = direction.RIGHT;
+		}
+	}
+
+
 	
 
 	ctx.clearRect(0, 0, snakeArenaCanvas.width, snakeArenaCanvas.height); //erase entire canvas
-	renderSnakeAndFood(snake); //render the snake and food
+	renderSnakeFoodWalls(snake); //render the snake and food
 }
 setInterval(() => { gameloop(snake) }, snakeDelay); //to control snake, lower value, higher speed
