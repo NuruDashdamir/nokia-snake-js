@@ -5,14 +5,15 @@ document.write("<canvas id='canvas' style='border: solid 4px #4D4; outline: soli
 let miniBlockSize = 4;
 let arenaSize = [30, 20];
 let defaultSnake = [[6, 2, false], [5, 2, false], [4, 2, false], [3, 2, false], [2, 2, false]];
+let defaultFoodLocation = [10, 2];
 let snake = [...defaultSnake];
-let food_location = [7, 2];
+let foodLocation = [...defaultFoodLocation];
 let snakeDelay = 200;
 
-const snakeArenaCanvas = document.getElementById('canvas');
-snakeArenaCanvas.setAttribute('width', arenaSize[0] * miniBlockSize * 4);
-snakeArenaCanvas.setAttribute('height', arenaSize[1] * miniBlockSize * 4);
-const ctx = snakeArenaCanvas.getContext('2d');
+const gameCanvas = document.getElementById('canvas');
+gameCanvas.setAttribute('width', arenaSize[0] * miniBlockSize * 4);
+gameCanvas.setAttribute('height', arenaSize[1] * miniBlockSize * 4);
+const ctx = gameCanvas.getContext('2d');
 ctx.fillStyle = 'black';
 
 function printBlock(intBlockData, coordinates) //blockData is 2byte hex (0xFFFF)
@@ -156,7 +157,7 @@ function renderSnakeFoodWalls(snakeArray) {
 	let snakeLength = snake.length - 1;
 	//HEAD OF SNAKE RENDER
 	let headDirection = getDirection(snake[0], snake[1]);
-	let hasFoodInFront = (headDirection == getDirection(food_location, snake[0]));
+	let hasFoodInFront = (headDirection == getDirection(foodLocation, snake[0]));
 	printBlock(snakeHeadBlock[headDirection][hasFoodInFront], snake[0]);
 
 	//BODY OF SNAKE RENDER
@@ -174,7 +175,7 @@ function renderSnakeFoodWalls(snakeArray) {
 	printBlock(snakeTailBlock[tailDirection], snake[snakeLength]); //snake tail - right
 
 	//FOOD RENDER
-	printBlock(foodBlock, food_location);
+	printBlock(foodBlock, foodLocation);
 
 
 	for (let coordinates in wallRender) {
@@ -185,6 +186,30 @@ function renderSnakeFoodWalls(snakeArray) {
 
 }
 //renderSnakeFoodWalls(snake);
+function checkGameOverConditions() {
+	for (let i = 1; i < snake.length; i++) //check if snake eats itself
+	{
+		if (getDirection(snake[0], snake[i]) == direction.SAMEBLOCK) {
+			return true;
+		}
+	}
+
+	// dying by hitting a wall condition check
+	for (let wallBlockCoordinates in wallRender)
+	{
+		if (getDirection(wallBlockCoordinates.split(','), snake[0]) == direction.SAMEBLOCK) { // js string to number conversion used
+			return true;
+		}
+	}
+}
+
+function reinitializeGame() {
+	snake = [...defaultSnake];
+	foodLocation = [...defaultFoodLocation]
+	keyDirection = direction.RIGHT;
+	snakeDirection = direction.RIGHT;
+};
+
 gameloop();
 function gameloop() {
 	//let key = keyDirection;
@@ -213,15 +238,15 @@ function gameloop() {
 
 
 	// check if food is eaten (is snake head in food)s
-	if (getDirection(snake[0], food_location) == direction.SAMEBLOCK) {
+	if (getDirection(snake[0], foodLocation) == direction.SAMEBLOCK) {
 		//this do-while generates food that is not inside of snake body or wall
 		let foodIsInSnakeOrWall = false;
 		do {
 			foodIsInSnakeOrWall  = false;
-			food_location[0] = Math.floor(Math.random() * arenaSize[0]);
-			food_location[1] = Math.floor(Math.random() * arenaSize[1]);
+			foodLocation[0] = Math.floor(Math.random() * arenaSize[0]);
+			foodLocation[1] = Math.floor(Math.random() * arenaSize[1]);
 			for (let i = 0; i < snake.length; i++) {
-				if (getDirection(snake[i], food_location) == direction.SAMEBLOCK) {
+				if (getDirection(snake[i], foodLocation) == direction.SAMEBLOCK) {
 					foodIsInSnakeOrWall = true;
 					break;
 				}
@@ -230,7 +255,7 @@ function gameloop() {
 			//check if food generated in wall, if so new location would be selected
 			if (!foodIsInSnakeOrWall) {
 				for (let wallBlockCoordinates in wallRender) {
-					if (getDirection(wallBlockCoordinates.split(','), food_location) == direction.SAMEBLOCK) {
+					if (getDirection(wallBlockCoordinates.split(','), foodLocation) == direction.SAMEBLOCK) {
 						foodIsInSnakeOrWall = true;
 						break;
 					}
@@ -243,32 +268,12 @@ function gameloop() {
 		snake.pop(); //remove last element of snake if it didn't eat any food, or snake will grow indefinitely
 	}
 
-	// snake dying condition check and game over logic (if eats itself)
-	for (let i = 1; i < snake.length; i++)
-	{
-		if (getDirection(snake[0], snake[i]) == direction.SAMEBLOCK) {
-			// game over logic
-			snake = [...defaultSnake];
-			keyDirection = direction.RIGHT;
-			snakeDirection = direction.RIGHT;
-		}
-	}
-
-	// dying by hitting a wall condition check
-	for (let wallBlockCoordinates in wallRender)
-	{
-		if (getDirection(wallBlockCoordinates.split(','), snake[0]) == direction.SAMEBLOCK) { // js string to number conversion used
-			// game over logic
-			snake = [...defaultSnake];
-			keyDirection = direction.RIGHT;
-			snakeDirection = direction.RIGHT;
-		}
-	}
+	// snake dying condition checks
+	let isGameOver = checkGameOverConditions();
+	if (isGameOver) reinitializeGame();
 
 
-	
-
-	ctx.clearRect(0, 0, snakeArenaCanvas.width, snakeArenaCanvas.height); //erase entire canvas
+	ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height); //erase entire canvas
 	renderSnakeFoodWalls(snake); //render the snake and food
 }
 setInterval(() => { gameloop(snake) }, snakeDelay); //to control snake, lower value, higher speed
