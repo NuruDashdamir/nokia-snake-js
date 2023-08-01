@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta content='width=device-width, initial-scale=0.5, maximum-scale=0.5, user-scalable=0' name='viewport' />
+    <meta charset="UTF-8">
+  </head>
+  <body>
+    <center>
+	  <div style="width: 90vw; margin-top: 5vh; margin-bottom: 5vh; /*background-color: #692;*/">
+      
+      <script> miniBlockSize = 2;</script>
+	    <script src="snake.js"></script>
+	  </div>
+
+	  <div style="width: 70vw; height: 70vw; /*background-color: #313131;*/">
+      <style>
+        button {
+          width: 20vw;
+          height: 20vw;
+        }
+      </style>
+      <button onclick="keyDirection=direction.UP"></button><br/>
+      <button onclick="keyDirection=direction.LEFT"></button>
+      <button style="height: 0vw; opacity: 0;">
+      <button onclick="keyDirection=direction.RIGHT"></button><br/>
+      <button onclick="keyDirection=direction.DOWN"></button>
+	  </div>
+    </center>
+  </body>
+</html>
