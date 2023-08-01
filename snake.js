@@ -8,8 +8,11 @@ let defaultSnake = [[6, 2, false], [5, 2, false], [4, 2, false], [3, 2, false], 
 let defaultFoodLocation = [10, 2];
 let snake = [...defaultSnake];
 let foodLocation = [...defaultFoodLocation];
-let snakeDelay = 200;
+let snakeDelay = 50;
 let gameScore = 0;
+
+let boostMode = false;
+let boosterCounter = 0;
 
 const scoreBoardIndentation = 2; //2 mini blocks for displaying score
 const gameCanvas = document.getElementById('canvas');
@@ -66,11 +69,23 @@ let directionKeyMapping = {
 	KeyS: direction.DOWN,
 	KeyD: direction.RIGHT
 };
-function keyboardHandler(e) {
+function keyPressHandler(e) {
 	let mappedDirectionKey = directionKeyMapping[e.code];
 	if (mappedDirectionKey)	keyDirection = mappedDirectionKey;
 }
-document.addEventListener('keypress', keyboardHandler);
+
+function keyDownHandler (e) {
+	if (e.repeat) return; //ignore repeated presses
+	if (e.code == "Space") boostMode = true;
+}
+
+function keyUpHandler (e) {
+	if (e.code == "Space") boostMode = false;
+}
+
+document.addEventListener('keypress', keyPressHandler);
+document.addEventListener('keydown', keyDownHandler);
+document.addEventListener('keyup', keyUpHandler);
 
 // get direction with wrapping around snake in mind
 function getDirection(mainPoint, secondPoint) {
@@ -236,8 +251,12 @@ function reinitializeGame() {
 
 gameloop();
 function gameloop() {
-	//let key = keyDirection;
+	// boosting feature, skip "frames" if not boosted
+	boosterCounter++;
+	if (boosterCounter < 3 && !boostMode) return;
+	boosterCounter = 0;
 
+	// direction handling
 	if (keyDirection != reverseDirection[snakeDirection]) {
 		snakeDirection = keyDirection;
 	}
