@@ -9,17 +9,19 @@ let defaultFoodLocation = [10, 2];
 let snake = [...defaultSnake];
 let foodLocation = [...defaultFoodLocation];
 let snakeDelay = 200;
+let gameScore = 0;
 
+const scoreBoardIndentation = 2; //2 mini blocks for displaying score
 const gameCanvas = document.getElementById('canvas');
 gameCanvas.setAttribute('width', arenaSize[0] * miniBlockSize * 4);
-gameCanvas.setAttribute('height', arenaSize[1] * miniBlockSize * 4);
+gameCanvas.setAttribute('height', (arenaSize[1] + scoreBoardIndentation) * miniBlockSize * 4);
 const ctx = gameCanvas.getContext('2d');
 ctx.fillStyle = 'black';
 
 function printBlock(intBlockData, coordinates) //blockData is 2byte hex (0xFFFF)
 {
 	let x = coordinates[0];
-	let y = coordinates[1];
+	let y = coordinates[1] + scoreBoardIndentation; //space for scoreboard added without interfering snake rendering, shifting everything
 	//"miniBlockSize" per mini block, "4* miniBlockSize"  will be whole block
 	for (let i = 0; i < 4; i++) {
 		let current = intBlockData % 16;
@@ -124,6 +126,21 @@ let snakeTailBlock = {
 	[direction.UP]: 0x6220
 };
 
+let scoreBlock = {
+	0: {top: 0x7555, bottom: 0x70F0},
+	1: {top: 0x2622, bottom: 0x70F0},
+	2: {top: 0x7174, bottom: 0x70F0},
+	3: {top: 0x7171, bottom: 0x70F0},
+	4: {top: 0x5571, bottom: 0x10F0},
+	5: {top: 0x7471, bottom: 0x70F0},
+	6: {top: 0x7475, bottom: 0x70F0},
+	7: {top: 0x7111, bottom: 0x10F0},
+	8: {top: 0x7575, bottom: 0x70F0},
+	9: {top: 0x7571, bottom: 0x70F0},
+	undefined: {top: 0, bottom: 0x00F0},
+};
+
+
 ///NEW
 
 //WALLS LOGIC #####################################
@@ -153,7 +170,7 @@ for (let y = 0; y < walls.length; y++) {
 
 //WALLS LOGIC #####################################
 
-function renderSnakeFoodWalls(snakeArray) {
+function renderSnakeFoodWallsScore(snakeArray) {
 	let snakeLength = snake.length - 1;
 	//HEAD OF SNAKE RENDER
 	let headDirection = getDirection(snake[0], snake[1]);
@@ -181,13 +198,19 @@ function renderSnakeFoodWalls(snakeArray) {
 	for (let coordinates in wallRender) {
 		printBlock(wallRender[coordinates], coordinates.split(',')); // js string to number conversion used
 	}
-	//TEMP
-
-
+	
+	//SCORE RENDER
+	let scoreString = gameScore.toString().padStart(4, "0");
+	for (let i=0; i<arenaSize[0]; i++) {
+		printBlock(scoreBlock[scoreString[i]].top, [i, -scoreBoardIndentation]);
+		printBlock(scoreBlock[scoreString[i]].bottom, [i, 1-scoreBoardIndentation]);
+	}
 }
+
 //renderSnakeFoodWalls(snake);
 function checkGameOverConditions() {
-	for (let i = 1; i < snake.length; i++) //check if snake eats itself
+	// check if snake eats itself
+	for (let i = 1; i < snake.length; i++)
 	{
 		if (getDirection(snake[0], snake[i]) == direction.SAMEBLOCK) {
 			return true;
@@ -208,6 +231,7 @@ function reinitializeGame() {
 	foodLocation = [...defaultFoodLocation]
 	keyDirection = direction.RIGHT;
 	snakeDirection = direction.RIGHT;
+	gameScore = 0;
 };
 
 gameloop();
@@ -237,8 +261,9 @@ function gameloop() {
 	snake[0][1] = (snake[0][1] + arenaSize[1]) % arenaSize[1];
 
 
-	// check if food is eaten (is snake head in food)s
+	// check if food is eaten (is snake head in food) and generate food
 	if (getDirection(snake[0], foodLocation) == direction.SAMEBLOCK) {
+		gameScore++; //increase score
 		//this do-while generates food that is not inside of snake body or wall
 		let foodIsInSnakeOrWall = false;
 		do {
@@ -274,6 +299,6 @@ function gameloop() {
 
 
 	ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height); //erase entire canvas
-	renderSnakeFoodWalls(snake); //render the snake and food
+	renderSnakeFoodWallsScore(snake); //render the snake and food
 }
 setInterval(() => { gameloop(snake) }, snakeDelay); //to control snake, lower value, higher speed
