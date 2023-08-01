@@ -1,5 +1,5 @@
 document.querySelector("body").style = "height: 90vh; display: flex; justify-content: center; align-items: center; background-color: #111"; //set body style
-document.write("<canvas id='canvas' style='border: solid 4px #181; padding:1px; background-color: #4D4;'></canvas>"); //create styled canvas for snake
+document.write("<canvas id='canvas' style='border: solid 4px #4D4; outline: solid 4px #181; padding:1px; background-color: #4D4;'></canvas>"); //create styled canvas for snake
 
 
 let miniBlockSize = 4;
